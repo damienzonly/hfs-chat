@@ -1,0 +1,20 @@
+#chat-viewer {
+    flex: 1;
+    display: flex;
+    overflow: auto;
+    padding: 15px;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    max-height: 400px;
+    width: 600px;
+    border: 1px solid grey;
+}
+
+#chat-container {
+
+}
+
+.chat-message {
+    margin-bottom: 10px;
+}
