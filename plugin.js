@@ -1,6 +1,6 @@
 exports.version = 1
 exports.description = "Simple chat integrated in HFS"
-exports.apiRequired = 8.65
+exports.apiRequired = 8.87
 exports.repo = "damienzonly/hfs-chat"
 exports.frontend_js = ['main.js']
 exports.frontend_css = ['style.css']
@@ -55,7 +55,7 @@ exports.config = {
 }
 
 exports.init = async api => {
-    const db = await api.openDb('chat')
+    const db = await api.openDb('chat', { rewriteLater: true })
     const { getCurrentUsername } = api.require('./auth')
     const API_BASE = `${api.Const.API_URI}chat/`
     const apis = {
@@ -92,6 +92,9 @@ exports.init = async api => {
         db.put(ts, { m, u })
         api.notifyClient('chat', 'newMessage', { ts, u, m })
         ctx.status = 201
+        const max = api.getConfig('retainMessages')
+        while (max && db.size() > max)
+            db.del(db.firstKey())
     }
     return {
         async middleware(ctx) {
