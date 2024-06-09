@@ -37,19 +37,20 @@ function ChatMessage({ message }) {
 
 function ChatContainer({ messages: ms }) {
     const [m, sm] = useState('');
+    const [collapsed, sc] = useState(true);
     const mlist = ms.map((message, i) => h(ChatMessage, { key: i, message }));
 
     const chatMessages = h('div', { className: 'chat-container' },
-        h('div', { className: 'chat-header' }, 'Chat'),
-        h('div', { className: 'chat-messages' }, mlist),
-        h('form', props.form(m, sm), h('input', props.input(m, sm)))
+        h('div', { className: 'chat-header' }, 'Chat',
+            HFS.iconBtn(collapsed ? '▲' : '▼', () => sc(x => !x), { title: HFS.t("collapse/expand") })),
+        !collapsed && h('div', { className: 'chat-messages' }, mlist),
+        !collapsed && h('form', props.form(m, sm), h('input', props.input(m, sm)))
     );
     return h(frag, null, chatMessages);
 }
 
 function ChatApp() {
     const [msgs, sm] = useState([]);
-    const [collapsed, sc] = useState(); // todo
     async function load() {
         sm(await fetch('/~/api/chat/list').then(v => v.json()).then(v => HFS._.map(v, (o,ts) => Object.assign(o, {ts}))));
     }
