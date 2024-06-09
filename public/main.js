@@ -38,7 +38,8 @@
 
     function ChatContainer({ messages: ms }) {
         const [m, sm] = useState('');
-        const [collapsed, sc] = useState(true);
+        const [collapsed, sc] = useState(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
+        localStorage.chatCollapsed = JSON.stringify(collapsed)
         const mlist = ms.map((message, i) => h(ChatMessage, { key: i, message }));
 
         const chatMessages = h('div', { className: 'chat-container' },
