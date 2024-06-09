@@ -74,7 +74,7 @@ const props = {
 
 function ChatMessage({ message }) {
     const { u, m, key: ts } = message;
-    return h('div', props.msg, `${new Date(ts).toLocaleString()} ${u} - ${m}`);
+    return h('div', props.msg, `${new Date(ts).toLocaleString()} ${u || '[anon]'} - ${m}`);
 }
 
 function ChatContainer({ messages: ms }) {

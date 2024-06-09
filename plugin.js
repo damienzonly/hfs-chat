@@ -79,8 +79,8 @@ exports.init = async api => {
             ctx.status = 400
             return ctx.stop()
         }
-        const username = getCurrentUsername(ctx)
-        if (!username && !api.getConfig('anonWrite')) {
+        const u = getCurrentUsername(ctx)
+        if (!u && !api.getConfig('anonWrite')) {
             ctx.status = 403
             return ctx.stop()
         }
@@ -89,7 +89,6 @@ exports.init = async api => {
             ctx.status = 400
             return ctx.stop()
         }
-        const u = username || '[anon]'
         db.put(ts, { m, u })
         api.notifyClient('chat', 'newMessage', { key: ts, u, m })
         ctx.status = 201
