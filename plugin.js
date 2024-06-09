@@ -57,7 +57,6 @@ exports.config = {
 exports.init = async api => {
     const db = await api.openDb('chat')
     const { getCurrentUsername } = api.require('./auth')
-    const _true = true
     const apis = {
         add: `${api.Const.API_URI}chat/add`,
         list: `${api.Const.API_URI}chat/list`,
@@ -67,27 +66,27 @@ exports.init = async api => {
         const username = getCurrentUsername(ctx)
         if (!username && !api.getConfig('anonRead')) {
             ctx.status = 403
-            return _true
+            return ctx.stop()
         }
         ctx.body = await db.asObject()
         ctx.status = 200
-        return true
+        return ctx.stop()
     }
 
     function addMsg({ ctx, ts, method }) {
         if (method !== 'post') {
             ctx.status = 400
-            return _true
+            return ctx.stop()
         }
         const username = getCurrentUsername(ctx)
         if (!username && !api.getConfig('anonWrite')) {
             ctx.status = 403
-            return _true
+            return ctx.stop()
         }
         const { m } = ctx.state.params
         if (!m || typeof m !== 'string' || m?.length > api.getConfig('maxMsgLen')) {
             ctx.status = 400
-            return _true
+            return ctx.stop()
         }
         const u = username || '[anon]'
         db.put(ts, { m, u })
