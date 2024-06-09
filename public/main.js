@@ -1,6 +1,6 @@
 "use strict";{
     const { h } = HFS;
-    const { useState, useEffect, Fragment: frag } = HFS.React;
+    const { useState, useEffect, useRef, Fragment: frag } = HFS.React;
 
     HFS.onEvent('afterList', () => h(ChatApp));
 
@@ -40,15 +40,24 @@
         const [m, sm] = useState('');
         const [collapsed, sc] = useState(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
         localStorage.chatCollapsed = JSON.stringify(collapsed)
-        const mlist = ms.map((message, i) => h(ChatMessage, { key: i, message }));
-
-        const chatMessages = h('div', { className: 'chat-container' },
+        const ref = useRef()
+        const [goBottom, setGoBottom] = useState(true)
+        const {current: el} = ref
+        useEffect(() => {
+            if (el && goBottom)
+                el.scrollTo(0, el.scrollHeight)
+        }, [goBottom, ms, el])
+        useEffect(() => HFS.domOn('scroll', () =>
+            setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 1), { target: el }),
+            [el])
+        return h('div', { className: 'chat-container' },
             h('div', { className: 'chat-header' }, 'Chat',
                 HFS.iconBtn(collapsed ? '▲' : '▼', () => sc(x => !x), { title: HFS.t("collapse/expand") })),
-            !collapsed && h('div', { className: 'chat-messages' }, mlist),
+            !collapsed && h('div', { className: 'chat-messages', ref },
+                ms.map((message, i) => h(ChatMessage, { key: i, message }))
+            ),
             !collapsed && h('form', props.form(m, sm), h('input', props.input(m, sm)))
         );
-        return h(frag, null, chatMessages);
     }
 
     function ChatApp() {
@@ -69,10 +78,3 @@
         return h(ChatContainer, { messages: msgs });
     }
 }
-
-/**
- * todo:
- * - auto scroll bottom
- * - theme based colors
- * - collapsible
- */
