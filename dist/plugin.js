@@ -56,14 +56,13 @@ exports.config = {
 
 exports.init = async api => {
     const db = await api.openDb('chat')
-    const {getCurrentUsername} = api.require('./auth')
+    const { getCurrentUsername } = api.require('./auth')
     const _true = true
     const apis = {
         add: `${api.Const.API_URI}chat/add`,
         list: `${api.Const.API_URI}chat/list`,
     }
-
-    function listMsg({ctx, method}) {
+    function listMsg({ ctx, method }) {
         if (method !== 'get') return
         const username = getCurrentUsername(ctx)
         if (!username && !api.getConfig('anonRead')) {
@@ -75,15 +74,15 @@ exports.init = async api => {
             o[k] = db.getSync(k)
         }
         const messages = Object.entries(o)
-        .map(([key, value]) => ({ key, ...value }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-        
+            .map(([key, value]) => ({ key, ...value }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
         ctx.body = messages
         ctx.status = 200
         return true
     }
 
-    function addMsg({ctx, ts, method}) {
+    function addMsg({ ctx, ts, method }) {
         if (method !== 'post') {
             ctx.status = 400
             return _true
@@ -93,22 +92,24 @@ exports.init = async api => {
             ctx.status = 403
             return _true
         }
-        const {m} = ctx.state.params
-        if (!m ||typeof m !== 'string' || m?.length > api.getConfig('maxMsgLen')) {
+        const { m } = ctx.state.params
+        if (!m || typeof m !== 'string' || m?.length > api.getConfig('maxMsgLen')) {
             ctx.status = 400
             return _true
         }
-        db.put(ts, {m, u: username || '[anon]'})
+        const u = username || '[anon]'
+        db.put(ts, { m, u })
+        api.notifyClient('chat', 'newMessage', { key: ts, u, m })
         ctx.status = 201
     }
     return {
-        middleware(ctx) {
+        async middleware(ctx) {
             const ts = new Date().toISOString()
             const p = ctx.path.toLowerCase()
             const method = ctx.method.toLowerCase()
             if (!Object.values(apis).includes(p)) return // api not destined to chat
-            if (p === apis.add) addMsg({ctx, ts, method});
-            else if (p === apis.list) listMsg({ctx, method})
-        }
+            if (p === apis.add) await addMsg({ ctx, ts, method });
+            else if (p === apis.list) await listMsg({ ctx, method })
+        },
     }
 }
