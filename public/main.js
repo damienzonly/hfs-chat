@@ -73,7 +73,7 @@ const props = {
 };
 
 function ChatMessage({ message }) {
-    const { u, m, key: ts } = message;
+    const { u, m, ts } = message;
     return h('div', props.msg, `${new Date(ts).toLocaleString()} ${u || '[anon]'} - ${m}`);
 }
 
@@ -96,7 +96,7 @@ function ChatApp() {
     const [msgs, sm] = useState([]);
     const [collapsed, sc] = useState(); // todo
     async function load() {
-        sm(await fetch('/~/api/chat/list').then(v => v.json()));
+        sm(await fetch('/~/api/chat/list').then(v => v.json()).then(v => HFS._.map(v, (o,ts) => Object.assign(o, {ts}))));
     }
     useEffect(() => {
         const eventSource = HFS.getNotifications('chat', (e, data) => {

@@ -90,7 +90,7 @@ exports.init = async api => {
             return ctx.stop()
         }
         db.put(ts, { m, u })
-        api.notifyClient('chat', 'newMessage', { key: ts, u, m })
+        api.notifyClient('chat', 'newMessage', { ts, u, m })
         ctx.status = 201
     }
     return {
