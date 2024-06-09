@@ -62,22 +62,14 @@ exports.init = async api => {
         add: `${api.Const.API_URI}chat/add`,
         list: `${api.Const.API_URI}chat/list`,
     }
-    function listMsg({ ctx, method }) {
+    async function listMsg({ ctx, method }) {
         if (method !== 'get') return
         const username = getCurrentUsername(ctx)
         if (!username && !api.getConfig('anonRead')) {
             ctx.status = 403
             return _true
         }
-        const o = {}
-        for (const k of db.keys()) { // cant use db.asObject since it's async
-            o[k] = db.getSync(k)
-        }
-        const messages = Object.entries(o)
-            .map(([key, value]) => ({ key, ...value }))
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        ctx.body = messages
+        ctx.body = await db.asObject()
         ctx.status = 200
         return true
     }
