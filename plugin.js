@@ -1,6 +1,6 @@
 exports.version = 1
 exports.description = "Simple chat integrated in HFS"
-exports.apiRequired = 8.65
+exports.apiRequired = 8.87
 exports.repo = "damienzonly/hfs-chat"
 exports.frontend_js = ['main.js']
 exports.frontend_css = ['style.css']
@@ -55,47 +55,50 @@ exports.config = {
 }
 
 exports.init = async api => {
-    const db = await api.openDb('chat')
+    const db = await api.openDb('chat', { rewriteLater: true })
     const { getCurrentUsername } = api.require('./auth')
-    const _true = true
+    const API_BASE = `${api.Const.API_URI}chat/`
     const apis = {
-        add: `${api.Const.API_URI}chat/add`,
-        list: `${api.Const.API_URI}chat/list`,
+        add: `${API_BASE}add`,
+        list: `${API_BASE}list`,
     }
     async function listMsg({ ctx, method }) {
         if (method !== 'get') return
         const username = getCurrentUsername(ctx)
         if (!username && !api.getConfig('anonRead')) {
             ctx.status = 403
-            return _true
+            return ctx.stop()
         }
         ctx.body = await db.asObject()
         ctx.status = 200
-        return true
+        return ctx.stop()
     }
 
     function addMsg({ ctx, ts, method }) {
         if (method !== 'post') {
             ctx.status = 400
-            return _true
+            return ctx.stop()
         }
-        const username = getCurrentUsername(ctx)
-        if (!username && !api.getConfig('anonWrite')) {
+        const u = getCurrentUsername(ctx)
+        if (!u && !api.getConfig('anonWrite')) {
             ctx.status = 403
-            return _true
+            return ctx.stop()
         }
         const { m } = ctx.state.params
         if (!m || typeof m !== 'string' || m?.length > api.getConfig('maxMsgLen')) {
             ctx.status = 400
-            return _true
+            return ctx.stop()
         }
-        const u = username || '[anon]'
         db.put(ts, { m, u })
-        api.notifyClient('chat', 'newMessage', { key: ts, u, m })
+        api.notifyClient('chat', 'newMessage', { ts, u, m })
         ctx.status = 201
+        const max = api.getConfig('retainMessages')
+        while (max && db.size() > max)
+            db.del(db.firstKey())
     }
     return {
         async middleware(ctx) {
+            if (!ctx.path.startsWith(API_BASE)) return
             const ts = new Date().toISOString()
             const p = ctx.path.toLowerCase()
             const method = ctx.method.toLowerCase()
