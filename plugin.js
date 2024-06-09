@@ -57,9 +57,10 @@ exports.config = {
 exports.init = async api => {
     const db = await api.openDb('chat')
     const { getCurrentUsername } = api.require('./auth')
+    const API_BASE = `${api.Const.API_URI}chat/`
     const apis = {
-        add: `${api.Const.API_URI}chat/add`,
-        list: `${api.Const.API_URI}chat/list`,
+        add: `${API_BASE}add`,
+        list: `${API_BASE}list`,
     }
     async function listMsg({ ctx, method }) {
         if (method !== 'get') return
@@ -95,6 +96,7 @@ exports.init = async api => {
     }
     return {
         async middleware(ctx) {
+            if (!ctx.path.startsWith(API_BASE)) return
             const ts = new Date().toISOString()
             const p = ctx.path.toLowerCase()
             const method = ctx.method.toLowerCase()
