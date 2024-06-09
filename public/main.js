@@ -3,6 +3,8 @@ const { useState, useEffect, Fragment: frag } = HFS.React;
 
 HFS.onEvent('afterList', () => h(ChatApp));
 
+const CONTRAST = 'var(--button-bg)'
+
 const props = {
     msg: { style: { padding: 5 } },
     card: {
@@ -10,7 +12,7 @@ const props = {
             position: 'fixed',
             width: 600,
             height: 400,
-            border: '1px solid black',
+            border: `1px solid ${CONTRAST}`,
             bottom: 10,
             right: 10,
             borderRadius: 3,
@@ -32,7 +34,7 @@ const props = {
                 bottom: 0,
                 display: 'flex',
                 padding: 5,
-                borderTop: '1px solid black'
+                borderTop: `1px solid ${CONTRAST}`
             },
             async onSubmit(e) {
                 e.preventDefault();
@@ -54,7 +56,7 @@ const props = {
             style: {
                 flex: 1,
                 padding: 5,
-                border: '1px solid black',
+                border: `1px solid ${CONTRAST}`,
                 borderRadius: 3,
                 marginRight: 5,
             }
@@ -62,7 +64,7 @@ const props = {
     },
     header: {
         style: {
-            borderBottom: '1px solid black',
+            borderBottom: `1px solid ${CONTRAST}`,
             fontWeight: 'bold',
             fontSize: 20,
             padding: 5
