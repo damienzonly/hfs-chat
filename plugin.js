@@ -4,21 +4,22 @@ exports.apiRequired = 8.87
 exports.repo = "damienzonly/hfs-chat"
 exports.frontend_js = ['main.js']
 exports.frontend_css = ['style.css']
-// todo: spam for anon
 exports.config = {
     anonWrite: {
         type: 'boolean',
         sm: 6,
         label: 'Anonymous can send',
         helperText: 'Allow anonymous users to send chat messages',
-        defaultValue: false
+        defaultValue: false,
+        frontend: true
     },
     anonRead: {
         type: 'boolean',
         sm: 6,
         label: 'Anonymous can view',
         helperText: 'Allow anonymous users to view chat messages',
-        defaultValue: false
+        defaultValue: false,
+        frontend: true
     },
     spamTimeout: {
         type: 'number',
@@ -27,6 +28,7 @@ exports.config = {
         min: 0,
         max: 300,
         defaultValue: 0,
+        frontend: true
     },
     retainMessages: {
         label: 'How many messages to retain',
@@ -42,15 +44,15 @@ exports.config = {
         max: 500,
         sm: 6,
         defaultValue: 280,
-        label: 'Maximum number of characters allowed per message'
+        label: 'Maximum number of characters allowed per message',
+        frontend: true
     },
     bannedUsers: {
-        type: 'select',
-        fields: {
-            user: {
-                type: 'username'
-            }
-        }
+        type: 'username',
+        multiple: true,
+        label: 'Banned users',
+        helperText: 'Banned users can\'t access the chat',
+        frontend: true
     }
 }
 
@@ -62,10 +64,21 @@ exports.init = async api => {
         add: `${API_BASE}add`,
         list: `${API_BASE}list`,
     }
+
+    /**
+     * @param {string} username 
+     * @param {'read' | 'write'} acion 
+     * @returns 
+     */
+    function isAllowed(username, action = 'read') {
+        const key = action === 'read' ? 'anonRead' : 'anonWrite'
+        if (!username && !api.getConfig(key)) return false
+        return !!username && isBanned(username)
+    }
     async function listMsg({ ctx, method }) {
         if (method !== 'get') return
         const username = getCurrentUsername(ctx)
-        if (!username && !api.getConfig('anonRead')) {
+        if (isAllowed(username, 'read')) {
             ctx.status = 403
             return ctx.stop()
         }
@@ -74,13 +87,17 @@ exports.init = async api => {
         return ctx.stop()
     }
 
+    function isBanned(username) {
+        return !!(api.getConfig('bannedUsers') || []).find(u => u === username)
+    }
+
     function addMsg({ ctx, ts, method }) {
         if (method !== 'post') {
             ctx.status = 400
             return ctx.stop()
         }
         const u = getCurrentUsername(ctx)
-        if (!u && !api.getConfig('anonWrite')) {
+        if (isAllowed(u, 'write')) {
             ctx.status = 403
             return ctx.stop()
         }
@@ -96,6 +113,7 @@ exports.init = async api => {
         while (max && db.size() > max)
             db.del(db.firstKey())
     }
+    
     return {
         async middleware(ctx) {
             if (!ctx.path.startsWith(API_BASE)) return
@@ -105,6 +123,6 @@ exports.init = async api => {
             if (!Object.values(apis).includes(p)) return // api not destined to chat
             if (p === apis.add) await addMsg({ ctx, ts, method });
             else if (p === apis.list) await listMsg({ ctx, method })
-        },
+        }
     }
 }
