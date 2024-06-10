@@ -13,7 +13,7 @@
     background-color: var(--bg);
 }
 .chat-header {
-    border-bottom: 1px solid var(--background);
+    border-bottom: 1px solid var(--chat);
     font-weight: bold;
     padding: 5px;
     display: flex;

@@ -57,7 +57,8 @@ exports.config = {
 }
 
 exports.init = async api => {
-    const db = await api.openDb('chat', { rewriteLater: true })
+    const chatDb = await api.openDb('chat', { rewriteLater: true })
+    const throttleDb = await api.openDb('throttle', { rewriteLater: true })
     const { getCurrentUsername } = api.require('./auth')
     const API_BASE = `${api.Const.API_URI}chat/`
     const apis = {
@@ -82,7 +83,7 @@ exports.init = async api => {
             ctx.status = 403
             return ctx.stop()
         }
-        ctx.body = await db.asObject()
+        ctx.body = await chatDb.asObject()
         ctx.status = 200
         return ctx.stop()
     }
@@ -91,7 +92,7 @@ exports.init = async api => {
         return !!(api.getConfig('bannedUsers') || []).find(u => u === username)
     }
 
-    function addMsg({ ctx, ts, method }) {
+    async function addMsg({ ctx, ts, method }) {
         if (method !== 'post') {
             ctx.status = 400
             return ctx.stop()
@@ -106,12 +107,19 @@ exports.init = async api => {
             ctx.status = 400
             return ctx.stop()
         }
-        db.put(ts, { m, u })
+        const who = u ? u : '$chat-anon'
+        const last = await throttleDb.get(who)
+        if (last && last + api.getConfig('spamTimeout') * 1000 > Date.now()) {
+            ctx.status = 429
+            return ctx.stop()
+        }
+        throttleDb.put(who, Date.now())
+        chatDb.put(ts, { m, u })
         api.notifyClient('chat', 'newMessage', { ts, u, m })
         ctx.status = 201
         const max = api.getConfig('retainMessages')
-        while (max && db.size() > max)
-            db.del(db.firstKey())
+        while (max && chatDb.size() > max)
+            chatDb.del(chatDb.firstKey())
     }
     
     return {
@@ -126,3 +134,8 @@ exports.init = async api => {
         }
     }
 }
+
+/**
+ * todo
+ * rate limit per connection? ip? username? anonymous???
+ */

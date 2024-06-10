@@ -23,6 +23,15 @@
             `${u || '[anon]'}: ${m}`
         );
     }
+    
+    function httpCodeToast(status) {
+        const msg = {
+            403: 'Forbidden',
+            400: 'Invalid Request',
+            429: `Can only send one message every ${conf.spamTimeout} seconds`
+        }[status]
+        msg && HFS.toast(msg, 'error')
+    }
 
     function ChatContainer({ messages: ms }) {
         const [m, sm] = useState('');
@@ -53,8 +62,10 @@
                     if (!anonCanWrite) return
                     const trim = m.trim()
                     if (!trim) return
-                    await fetch('/~/api/chat/add', { 'Content-Type': 'application/json', method: 'POST', body: JSON.stringify({ m: trim }) });
-                    sm('');
+                    const res = await fetch('/~/api/chat/add', { 'Content-Type': 'application/json', method: 'POST', body: JSON.stringify({ m: trim }) })
+                    httpCodeToast(res.status)
+                    if (res.status >= 200 && res.status < 300)
+                        sm('');
                 }
             }, h('input', {
                 value: m,
