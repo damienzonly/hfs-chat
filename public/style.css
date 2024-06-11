@@ -12,6 +12,9 @@
     flex-direction: column;
     background-color: var(--bg);
 }
+.chat-container .icon-button {
+    font-size: smaller;
+}
 .chat-header {
     border-bottom: 1px solid var(--chat);
     font-weight: bold;
@@ -34,6 +37,7 @@
     justify-content: space-between;
     padding: 5px;
     border-top: 1px solid var(--chat);
+    align-items: center;
 }
 .chat-container input {
     flex: 1px;

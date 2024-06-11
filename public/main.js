@@ -1,26 +1,23 @@
 "use strict"; {
     const conf = HFS.getPluginConfig()
-    const username = HFS.state.username
+    const {username} = HFS.state // NB: this can change at run-time
     const { h } = HFS;
-    const { useState, useEffect, useRef, Fragment: frag } = HFS.React;
+    const { useState, useEffect, useRef, Fragment } = HFS.React;
 
     HFS.onEvent('afterList', () => h(ChatApp));
 
-    const isBanned = myBan()
+    const isBanned = conf.bannedUsers !== undefined && !!conf.bannedUsers.includes(username)
     let {anonRead: anonCanRead, anonWrite: anonCanWrite} = conf
     if (username) {
         anonCanRead = true
         anonCanWrite = true
     }
-    function myBan() {
-        return conf.bannedUsers !== undefined && !!conf.bannedUsers.includes(username)
-    }
 
     function ChatMessage({ message }) {
-        const { u, m, ts } = message;
+        const { u, m, ts, n } = message;
         return h('div', { className: 'msg' },
             h('div', { className: 'msg-ts' }, new Date(ts).toLocaleString()),
-            `${u || '[anon]'}: ${m}`
+            `${u || n && `${n} (guest)` || '[anon]'}: ${m}`
         );
     }
     
@@ -34,7 +31,11 @@
     }
 
     function ChatContainer({ messages: ms }) {
+        const {username} = HFS.useSnapState()
         const [m, sm] = useState('');
+        // nickname, with local persistence
+        const [n, sn] = useState(() => localStorage.chatNick ||= 'U' + Math.random().toString().slice(2,5))
+        useEffect(() => { localStorage.chatNick = n }, [n])
         const [collapsed, sc] = useState(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
         localStorage.chatCollapsed = JSON.stringify(collapsed)
         const ref = useRef()
@@ -48,10 +49,16 @@
             if (el)
                 HFS.domOn('scroll', () =>
                     setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 1), { target: el })
-        },
-            [el])
+        }, [el])
         return h('div', { className: 'chat-container' },
-            h('div', { className: 'chat-header' }, 'Chat',
+            h('div', { className: 'chat-header' },
+                h('span', {},
+                    `Chat`,
+                    !collapsed && !username && h(Fragment, {},
+                        ` as ${n} `,
+                        HFS.iconBtn('edit', changeNick, { title: HFS.t("change nickname") }),
+                    ),
+                ),
                 HFS.iconBtn(collapsed ? '▲' : '▼', () => sc(x => !x), { title: HFS.t("collapse/expand") })),
             !collapsed && h('div', { className: 'chat-messages', ref },
                 anonCanRead ? ms.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'
@@ -62,7 +69,11 @@
                     if (!anonCanWrite) return
                     const trim = m.trim()
                     if (!trim) return
-                    const res = await fetch('/~/api/chat/add', { 'Content-Type': 'application/json', method: 'POST', body: JSON.stringify({ m: trim }) })
+                    const res = await fetch('/~/api/chat/add', {
+                        'Content-Type': 'application/json',
+                        method: 'POST',
+                        body: JSON.stringify({ n: username ? undefined : n, m: trim })
+                    })
                     httpCodeToast(res.status)
                     if (res.status >= 200 && res.status < 300)
                         sm('');
@@ -74,6 +85,10 @@
                 placeholder: anonCanWrite ? undefined : 'Anonymous users can\'t send messages'
             }), h('div', {className: 'chat-charcounter', style: {color: m.length === conf.maxMsgLen ? '#fe5757' : undefined}}, `${m.length}/${conf.maxMsgLen}`))
         );
+
+        function changeNick() {
+            HFS.dialogLib.promptDialog("Your name", { value: n }).then(x => x && sn(x))
+        }
     }
 
     function ChatApp() {
@@ -107,4 +122,5 @@
  * resizable chat container
  * new messages when not scrolled to bottom and on collapsed, persisted in localstorage
  * users that can write and read
+ * don't send banned users list to frontend
  */
