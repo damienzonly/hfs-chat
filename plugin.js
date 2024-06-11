@@ -107,7 +107,7 @@ exports.init = async api => {
             ctx.status = 400
             return ctx.stop()
         }
-        const who = u ? u : '$chat-anon'
+        const who = u ? u : ctx.ip
         const last = await throttleDb.get(who)
         if (last && last + api.getConfig('spamTimeout') * 1000 > Date.now()) {
             ctx.status = 429
@@ -134,8 +134,3 @@ exports.init = async api => {
         }
     }
 }
-
-/**
- * todo
- * rate limit per connection? ip? username? anonymous???
- */
