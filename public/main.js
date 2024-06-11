@@ -39,6 +39,7 @@
         const [collapsed, sc] = useState(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
         localStorage.chatCollapsed = JSON.stringify(collapsed)
         const ref = useRef()
+        const lastScrollListenerRef = useRef()
         const [goBottom, setGoBottom] = useState(true)
         const { current: el } = ref
         useEffect(() => {
@@ -60,9 +61,16 @@
                     ),
                 ),
                 HFS.iconBtn(collapsed ? '▲' : '▼', () => sc(x => !x), { title: HFS.t("collapse/expand") })),
-            !collapsed && h('div', { className: 'chat-messages', ref },
-                anonCanRead ? ms.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'
-            ),
+            !collapsed && h('div', {
+                className: 'chat-messages',
+                ref(el) {
+                    ref.current = el
+                    // reinstall listener
+                    lastScrollListenerRef.current?.()
+                    lastScrollListenerRef.current = HFS.domOn('scroll', ({ target: el }) =>
+                        setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 3), { target: el })
+                }
+            }, anonCanRead ? ms.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'),
             !collapsed && h('form', {
                 async onSubmit(e) {
                     e.preventDefault();
