@@ -20,7 +20,7 @@
             `${u || n && `${n} (guest)` || '[anon]'}: ${m}`
         );
     }
-    
+
     function httpCodeToast(status) {
         const msg = {
             403: 'Forbidden',
@@ -30,27 +30,46 @@
         msg && HFS.toast(msg, 'error')
     }
 
-    function ChatContainer({ messages: ms }) {
+    function ChatContainer() {
         const {username} = HFS.useSnapState()
         const [m, sm] = useState('');
         // nickname, with local persistence
         const [n, sn] = useState(() => localStorage.chatNick ||= 'U' + Math.random().toString().slice(2,5))
         useEffect(() => { localStorage.chatNick = n }, [n])
-        const [collapsed, sc] = useState(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
+
+        const [collapsed, sc, {get: getCollapsed}] = HFS.misc.useStateMounted(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
         localStorage.chatCollapsed = JSON.stringify(collapsed)
+
+        const [msgs, setMsgs] = useState();
+        useEffect(() => {
+            const eventSource = HFS.getNotifications('chat', (e, data) => {
+                if (e !== 'newMessage') return;
+                setMsgs(old => [...old, data]);
+                if (getCollapsed() || !getGoBottom())
+                    setUnread(x => x + 1)
+            });
+            fetch('/~/api/chat/list').then(v => v.json()).then(v =>
+                setMsgs(HFS._.map(v, (o, ts) => Object.assign(o, { ts }))));
+            return () => {
+                eventSource.then(v => v.close());
+            };
+        }, []);
+
         const ref = useRef()
         const lastScrollListenerRef = useRef()
-        const [goBottom, setGoBottom] = useState(true)
-        const { current: el } = ref
+        const [goBottom, setGoBottom,{get:getGoBottom}] = HFS.misc.useStateMounted(true)
+
+        const [unread, setUnread] = useState(0);
         useEffect(() => {
-            if (el && goBottom)
-                el.scrollTo(0, el.scrollHeight)
-        }, [goBottom, ms, el])
+            if (!collapsed && goBottom) setUnread(0) // reset
+        }, [collapsed, goBottom])
+
         useEffect(() => {
-            if (el)
-                HFS.domOn('scroll', () =>
-                    setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 1), { target: el })
-        }, [el])
+            const {current:el} = ref
+            if (goBottom)
+                el?.scrollTo(0, el.scrollHeight)
+        }, [goBottom, msgs, collapsed])
+
         return h('div', { className: 'chat-container' },
             h('div', { className: 'chat-header' },
                 h('span', {},
@@ -59,6 +78,7 @@
                         ` as ${n} `,
                         HFS.iconBtn('edit', changeNick, { title: HFS.t("change nickname") }),
                     ),
+                    unread > 0 && ` (${unread})`
                 ),
                 HFS.iconBtn(collapsed ? '▲' : '▼', () => sc(x => !x), { title: HFS.t("collapse/expand") })),
             !collapsed && h('div', {
@@ -70,7 +90,7 @@
                     lastScrollListenerRef.current = HFS.domOn('scroll', ({ target: el }) =>
                         setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 3), { target: el })
                 }
-            }, anonCanRead ? ms.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'),
+            }, anonCanRead ? msgs?.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'),
             !collapsed && h('form', {
                 async onSubmit(e) {
                     e.preventDefault();
@@ -100,26 +120,7 @@
     }
 
     function ChatApp() {
-        const [msgs, sm] = useState([]);
-        
-        async function load() {
-            sm(await fetch('/~/api/chat/list').then(v => v.json()).then(v => HFS._.map(v, (o, ts) => Object.assign(o, { ts }))));
-        }
-        
-        useEffect(() => {
-            if (isBanned) return
-            if (anonCanRead) {
-                const eventSource = HFS.getNotifications('chat', (e, data) => {
-                    if (e !== 'newMessage') return;
-                    sm(old => [...old, data]);
-                });
-                load();
-                return () => {
-                    eventSource.then(v => v.close());
-                };
-            }
-        }, []);
-        return isBanned || (!anonCanRead && !anonCanWrite)? null : h(ChatContainer, { messages: msgs, isBanned});
+        return isBanned || (!anonCanRead && !anonCanWrite)? null : h(ChatContainer);
     }
 }
 
@@ -130,5 +131,5 @@
  * resizable chat container
  * new messages when not scrolled to bottom and on collapsed, persisted in localstorage
  * users that can write and read
- * don't send banned users list to frontend
+ * don't send banned users list to frontend (can include the isBanned in the 'list' api)
  */
