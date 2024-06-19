@@ -108,6 +108,7 @@
                 }
             }, h('input', {
                 value: m,
+                ref(e) { e?.focus() },
                 disabled: !anonCanWrite,
                 onChange(e) { if (e.target.value.length <= conf.maxMsgLen) sm(e.target.value) },
                 placeholder: anonCanWrite ? undefined : 'Anonymous users can\'t send messages'
