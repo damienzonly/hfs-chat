@@ -97,25 +97,25 @@ exports.init = async api => {
             ctx.status = 400
             return ctx.stop()
         }
-        const u = getCurrentUsername(ctx)
+        const u = getCurrentUsername(ctx) || undefined
         if (isAllowed(u, 'write')) {
             ctx.status = 403
             return ctx.stop()
         }
-        const { m } = ctx.state.params
+        const { m, n } = ctx.state.params
         if (!m || typeof m !== 'string' || m?.length > api.getConfig('maxMsgLen')) {
             ctx.status = 400
             return ctx.stop()
         }
-        const who = u ? u : '$chat-anon'
+        const who = u ? u : ctx.ip
         const last = await throttleDb.get(who)
         if (last && last + api.getConfig('spamTimeout') * 1000 > Date.now()) {
             ctx.status = 429
             return ctx.stop()
         }
         throttleDb.put(who, Date.now())
-        chatDb.put(ts, { m, u })
-        api.notifyClient('chat', 'newMessage', { ts, u, m })
+        chatDb.put(ts, { m, u, n })
+        api.notifyClient('chat', 'newMessage', { ts, u, m, n })
         ctx.status = 201
         const max = api.getConfig('retainMessages')
         while (max && chatDb.size() > max)
@@ -134,8 +134,3 @@ exports.init = async api => {
         }
     }
 }
-
-/**
- * todo
- * rate limit per connection? ip? username? anonymous???
- */
