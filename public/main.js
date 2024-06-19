@@ -6,7 +6,6 @@
 
     HFS.onEvent('afterList', () => h(ChatApp));
 
-    const isBanned = conf.bannedUsers !== undefined && !!conf.bannedUsers.includes(username)
     let {anonRead: anonCanRead, anonWrite: anonCanWrite} = conf
     if (username) {
         anonCanRead = true
@@ -121,6 +120,16 @@
     }
 
     function ChatApp() {
+        const [isBanned, setIsBanned] = useState(true)
+        useEffect(() => {
+            fetch('/~/api/chat/banned')
+            .then(v => v.json())
+            .then(v => setIsBanned(v))
+            .catch(e => {
+                console.error('server error:', e)
+                setIsBanned(true)
+            })
+        })
         return isBanned || (!anonCanRead && !anonCanWrite)? null : h(ChatContainer);
     }
 }

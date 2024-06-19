@@ -64,6 +64,7 @@ exports.init = async api => {
     const apis = {
         add: `${API_BASE}add`,
         list: `${API_BASE}list`,
+        banned: `${API_BASE}banned`
     }
 
     /**
@@ -121,6 +122,16 @@ exports.init = async api => {
         while (max && chatDb.size() > max)
             chatDb.del(chatDb.firstKey())
     }
+    async function checkBanned({ctx, method}) {
+        if (method !== 'get') {
+            ctx.status = 400
+            return ctx.stop()
+        }
+        const u = getCurrentUsername(ctx)
+        ctx.body = isAllowed(u, 'read') && isAllowed(u, 'write')
+        ctx.status = 200
+        return ctx.stop()
+    }
     
     return {
         async middleware(ctx) {
@@ -131,6 +142,7 @@ exports.init = async api => {
             if (!Object.values(apis).includes(p)) return // api not destined to chat
             if (p === apis.add) await addMsg({ ctx, ts, method });
             else if (p === apis.list) await listMsg({ ctx, method })
+            else if (p === apis.banned) await checkBanned({ctx, method})
         }
     }
 }
