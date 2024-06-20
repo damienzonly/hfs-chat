@@ -1,4 +1,4 @@
-exports.version = 1
+exports.version = 1.0
 exports.description = "Simple chat integrated in HFS"
 exports.apiRequired = 8.87
 exports.repo = "damienzonly/hfs-chat"
