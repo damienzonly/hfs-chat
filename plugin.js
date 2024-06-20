@@ -4,6 +4,7 @@ exports.apiRequired = 8.87
 exports.repo = "damienzonly/hfs-chat"
 exports.frontend_js = ['main.js']
 exports.frontend_css = ['style.css']
+exports.preview = ["https://github.com/damienzonly/hfs-chat/assets/38798780/af21cdd8-32b9-4e33-8c84-eeca93152adc","https://github.com/damienzonly/hfs-chat/assets/38798780/ead05dfe-ea27-4476-b286-ab7ad2b43998"]
 exports.config = {
     anonWrite: {
         type: 'boolean',

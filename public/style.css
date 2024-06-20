@@ -24,6 +24,9 @@
     justify-content: space-between;
     min-width: 5em;
 }
+.chat-container .chat-header span button.icon-button {
+    margin-left: 6px;
+}
 .chat-messages {
     display: flex;
     flex-direction: column;

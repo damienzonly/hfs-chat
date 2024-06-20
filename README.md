@@ -4,7 +4,7 @@ Welcome to HFS Chat!
 <br>
 This plugin enables a chat system to let users chat on your HFS server.
 
-![](https://github.com/damienzonly/hfs-chat/assets/38798780/c3b79d5c-0528-46b8-89b7-07e7154f37fb)
+![](https://github.com/damienzonly/hfs-chat/assets/38798780/af21cdd8-32b9-4e33-8c84-eeca93152adc)
 
 ## Core Features
 
