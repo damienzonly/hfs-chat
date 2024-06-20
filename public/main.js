@@ -14,7 +14,7 @@
 
     function ChatMessage({ message }) {
         const { u, m, ts, n } = message;
-        return h('div', { className: 'msg' },
+        return h('div', { className: `msg ${u ? 'msg-user' : 'msg-anon'}` },
             h('div', { className: 'msg-ts' }, new Date(ts).toLocaleString()),
             `${u || n && `${n} (guest)` || '[anon]'}: ${m}`
         );
@@ -141,5 +141,5 @@
  * resizable chat container
  * new messages when not scrolled to bottom and on collapsed, persisted in localstorage
  * users that can write and read
- * don't send banned users list to frontend (can include the isBanned in the 'list' api)
+ * .msg-admin message class if message is from an administrator
  */
