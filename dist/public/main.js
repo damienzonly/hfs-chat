@@ -4,7 +4,7 @@
     const { h } = HFS;
     const { useState, useEffect, useRef, Fragment } = HFS.React;
 
-    HFS.onEvent('afterList', () => h(ChatApp));
+    HFS.onEvent('footer', () => h(ChatApp));
 
     let {anonRead: anonCanRead, anonWrite: anonCanWrite} = conf
     if (username) {
