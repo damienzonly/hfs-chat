@@ -61,3 +61,10 @@
     text-align: end;
     min-width: 80px;
 }
+
+@media (max-width: 70em) {
+    .chat-container {
+        position: sticky;
+        bottom: 0;
+    }
+}
