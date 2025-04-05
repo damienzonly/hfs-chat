@@ -56,8 +56,9 @@
 
         const ref = useRef()
         const lastScrollListenerRef = useRef()
-        const [goBottom, setGoBottom,{get:getGoBottom}] = HFS.misc.useStateMounted(true)
-
+        let [goBottom, setGoBottom, getGoBottom] = HFS.misc.useStateMounted(true)
+        getGoBottom = getGoBottom.get || getGoBottom 
+        
         const [unread, setUnread] = useState(0);
         useEffect(() => {
             if (!collapsed && goBottom) setUnread(0) // reset
