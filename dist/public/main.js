@@ -36,7 +36,8 @@
         const [n, sn] = useState(() => localStorage.chatNick ||= 'U' + Math.random().toString().slice(2,5))
         useEffect(() => { localStorage.chatNick = n }, [n])
 
-        const [collapsed, sc, {get: getCollapsed}] = HFS.misc.useStateMounted(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
+        let [collapsed, sc, getCollapsed] = HFS.misc.useStateMounted(HFS.misc.tryJson(localStorage.chatCollapsed) ?? true);
+        getCollapsed = getCollapsed.get || getCollapsed
         localStorage.chatCollapsed = JSON.stringify(collapsed)
 
         const [msgs, setMsgs] = useState();
