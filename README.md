@@ -4,7 +4,7 @@ Welcome to HFS Chat!
 <br>
 This plugin enables a chat system to let users chat on your HFS server.
 
-![](https://github.com/damienzonly/hfs-chat/assets/38798780/af21cdd8-32b9-4e33-8c84-eeca93152adc)
+![](./preview.png)
 
 ## Core Features
 
@@ -17,11 +17,14 @@ This plugin enables a chat system to let users chat on your HFS server.
 - **Character limit**: Limit the maximum allowed characters per message to ensure concise communication.
 
 ## Styling
+
 The chat design inherits the style from the standard theme CSS, ensuring a consistent look and feel. All CSS classes are defined in the `style.css` file. If you want to customize the style, you can edit this file directly or create a new plugin to override the CSS rules of the chat plugin.
 
 In addition to the `.msg` CSS class, every message has an additional class `.msg-anon` for guest's messages and `.msg-user` for logger users messages.
 
 ## Contribute
+
 We value your feedback! Please create a github issue for any suggestion or problem you encounter. Your feedback is important to us, and we will consider all ideas to improve the plugin.
 
 Have fun!
+
