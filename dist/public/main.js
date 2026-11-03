@@ -1,17 +1,10 @@
 "use strict"; {
     const conf = HFS.getPluginConfig()
-    const {username} = HFS.state // NB: this can change at run-time
     const { h } = HFS;
     const { useState, useEffect, useRef, Fragment } = HFS.React;
     const API_BASE = HFS.prefixUrl + '/~/api/chat/'
 
     HFS.onEvent('footer', () => h(ChatApp));
-
-    let {anonRead: anonCanRead, anonWrite: anonCanWrite} = conf
-    if (username) {
-        anonCanRead = true
-        anonCanWrite = true
-    }
 
     function ChatMessage({ message }) {
         const { u, m, ts, n } = message;
@@ -31,7 +24,7 @@
     }
 
     const CONTAINER_CLASS = 'chat-container'
-    function ChatContainer() {
+    function ChatContainer({ canRead, canWrite }) {
         const {username} = HFS.useSnapState()
         const [m, sm] = useState('');
         // nickname, with local persistence
@@ -93,11 +86,11 @@
                     lastScrollListenerRef.current = HFS.domOn('scroll', ({ target: el }) =>
                         setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 3), { target: el })
                 }
-            }, anonCanRead ? msgs?.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'),
+            }, canRead ? msgs?.map((message, i) => h(ChatMessage, { key: i, message })) : 'Anonymous users can\'t view messages'),
             !collapsed && h('form', {
                 async onSubmit(e) {
                     e.preventDefault();
-                    if (!anonCanWrite) return
+                    if (!canWrite) return
                     const trim = m.trim()
                     if (!trim) return
                     const res = await fetch(API_BASE + 'add', {
@@ -112,9 +105,9 @@
             }, h('input', {
                 value: m,
                 ref(e) { e?.focus() },
-                disabled: !anonCanWrite,
+                disabled: !canWrite,
                 onChange(e) { if (e.target.value.length <= conf.maxMsgLen) sm(e.target.value) },
-                placeholder: anonCanWrite ? undefined : 'Anonymous users can\'t send messages'
+                placeholder: canWrite ? undefined : 'Anonymous users can\'t send messages'
             }), h('div', {className: 'chat-charcounter', style: {color: m.length === conf.maxMsgLen ? '#fe5757' : undefined}}, `${m.length}/${conf.maxMsgLen}`))
         );
 
@@ -124,17 +117,27 @@
     }
 
     function ChatApp() {
-        const [isBanned, setIsBanned] = useState(true)
+        const { username } = HFS.useSnapState()
+        const canRead = Boolean(username || conf.anonRead)
+        const canWrite = Boolean(username || conf.anonWrite)
+        const [banCheck, setBanCheck] = useState()
         useEffect(() => {
+            let stale = false
             fetch(API_BASE + 'banned')
             .then(v => v.json())
-            .then(v => setIsBanned(v))
-            .catch(e => {
-                console.error('server error:', e)
-                setIsBanned(true)
+            .then(isBanned => {
+                if (!stale) setBanCheck({ username, isBanned })
             })
-        })
-        return isBanned || (!anonCanRead && !anonCanWrite)? null : h(ChatContainer);
+            .catch(e => {
+                if (stale) return
+                console.error('server error:', e)
+                setBanCheck({ username, isBanned: true })
+            })
+            // discard the previous session's response so it cannot change the current user's access
+            return () => { stale = true }
+        }, [username])
+        const isBanned = !banCheck || banCheck.username !== username || banCheck.isBanned
+        return isBanned || (!canRead && !canWrite) ? null : h(ChatContainer, { canRead, canWrite });
     }
 
     // don't overlap with pagination-bar when we are in sticky mode

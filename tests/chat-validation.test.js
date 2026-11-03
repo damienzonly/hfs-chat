@@ -55,13 +55,16 @@ test('prefixes every chat request with the HFS mount path', async () => {
     global.requestAnimationFrame = () => 1
     global.cancelAnimationFrame = () => {}
     const effects = []
+    let stateCall = 0
     global.HFS = {
         prefixUrl: '/mount',
         getPluginConfig: () => ({ anonRead: true, anonWrite: true, maxMsgLen: 280, spamTimeout: 0 }),
         state: {},
         React: {
             Fragment: 'fragment',
-            useState: init => [typeof init === 'function' ? init() : init === true ? false : init === '' ? 'hello' : init, () => {}],
+            useState: init => [stateCall++ === 0
+                ? { username: undefined, isBanned: false }
+                : typeof init === 'function' ? init() : init === true ? false : init === '' ? 'hello' : init, () => {}],
             useEffect: effect => effects.push(effect),
             useRef: () => ({ current: null }),
         },
@@ -108,5 +111,88 @@ test('prefixes every chat request with the HFS mount path', async () => {
         delete global.document
         delete global.requestAnimationFrame
         delete global.cancelAnimationFrame
+    }
+})
+
+test('updates chat visibility when the session username changes', () => {
+    let renderFooter
+    let username = ''
+    global.localStorage = {}
+    global.HFS = {
+        state: {},
+        getPluginConfig: () => ({ anonRead: false, anonWrite: false }),
+        React: {
+            Fragment: 'fragment',
+            useEffect() {},
+            useRef: () => ({ current: null }),
+            useState: () => [{ username, isBanned: false }, () => {}],
+        },
+        h(type, props) {
+            if (typeof type !== 'function') return { type, props }
+            return type.name === 'ChatContainer' ? { type: type.name } : type(props || {})
+        },
+        onEvent: (_, callback) => renderFooter = callback,
+        useSnapState: () => ({ username }),
+    }
+    delete require.cache[require.resolve('../dist/public/main.js')]
+
+    try {
+        require('../dist/public/main.js')
+        assert.equal(renderFooter(), null)
+        username = 'alice'
+        assert.equal(renderFooter().type, 'ChatContainer')
+        username = ''
+        assert.equal(renderFooter(), null)
+    }
+    finally {
+        delete global.HFS
+        delete global.localStorage
+    }
+})
+
+test('ignores an outdated ban response after the username changes', async () => {
+    const requests = []
+    const updates = []
+    let effect
+    let renderFooter
+    let username = 'alice'
+    global.fetch = () => new Promise(resolve => requests.push(resolve))
+    global.localStorage = {}
+    global.HFS = {
+        prefixUrl: '',
+        getPluginConfig: () => ({ anonRead: false, anonWrite: false }),
+        React: {
+            Fragment: 'fragment',
+            useEffect: callback => effect = callback,
+            useRef: () => ({ current: null }),
+            useState: () => [undefined, value => updates.push(value)],
+        },
+        h(type, props) {
+            if (typeof type !== 'function') return { type, props }
+            return type.name === 'ChatContainer' ? { type: type.name } : type(props || {})
+        },
+        onEvent: (_, callback) => renderFooter = callback,
+        useSnapState: () => ({ username }),
+    }
+    delete require.cache[require.resolve('../dist/public/main.js')]
+
+    try {
+        require('../dist/public/main.js')
+        renderFooter()
+        const discardAlice = effect()
+        username = 'bob'
+        renderFooter()
+        discardAlice()
+        effect()
+        requests[1]({ json: async () => true })
+        await new Promise(setImmediate)
+        requests[0]({ json: async () => false })
+        await new Promise(setImmediate)
+        assert.deepEqual(updates, [{ username: 'bob', isBanned: true }])
+    }
+    finally {
+        delete global.HFS
+        delete global.fetch
+        delete global.localStorage
     }
 })
