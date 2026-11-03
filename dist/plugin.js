@@ -1,4 +1,4 @@
-exports.version = 1.32
+exports.version = 1.33
 exports.description = "Simple chat integrated in HFS"
 exports.apiRequired = 8.89 // ctx.stop()
 exports.repo = "damienzonly/hfs-chat"
@@ -57,6 +57,7 @@ exports.config = {
     }
 }
 exports.changelog = [
+    { "version": 1.33, "message": "Chat visibility now updates immediately after login or logout" },
     { "version": 1.32, "message": "Fixed chat behind path-based reverse proxies and rejected invalid guest nicknames" },
     { "version": 1.21, "message": "fix: don't overlap with pagination-bar on phone" }
 ]
